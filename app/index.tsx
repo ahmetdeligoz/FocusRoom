@@ -4,10 +4,10 @@ import { StatusBar } from 'expo-status-bar';
 import { Eye, EyeOff, Target } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-    KeyboardAvoidingView, Platform, ScrollView,
-    StyleSheet, Text,
-    TextInput, TouchableOpacity,
-    View
+  KeyboardAvoidingView, Platform, ScrollView,
+  StyleSheet, Text,
+  TextInput, TouchableOpacity,
+  View
 } from 'react-native';
 
 export default function LoginScreen() {
@@ -18,7 +18,7 @@ export default function LoginScreen() {
 
   const handleLogin = () => {
     // Burada normalde backend kontrolü yapılır
-    // Şimdilik direkt odaya (home) yönlendiriyoruz
+    // Şimdilik direkt ana sayfaya (home) yönlendiriyoruz
     router.replace('/home');
   };
 
@@ -36,15 +36,15 @@ export default function LoginScreen() {
             <Target size={40} color="#FFF" />
           </View>
           <Text style={styles.appName}>FocusRoom</Text>
-          <Text style={styles.tagline}>Deep work, together.</Text>
+          <Text style={styles.tagline}>Birlikte derin çalışma.</Text>
         </View>
 
         {/* FORM ALANI */}
         <View style={styles.form}>
           
-          {/* Email Input */}
+          {/* E-posta Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>E-posta</Text>
             <TextInput
               style={styles.input}
               placeholder="name@example.com"
@@ -56,13 +56,13 @@ export default function LoginScreen() {
             />
           </View>
 
-          {/* Password Input */}
+          {/* Şifre Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>Şifre</Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="Enter your password"
+                placeholder="Şifrenizi girin"
                 placeholderTextColor="#666"
                 value={password}
                 onChangeText={setPassword}
@@ -77,24 +77,24 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          {/* Forgot Password */}
+          {/* Şifremi Unuttum */}
           <TouchableOpacity style={styles.forgotButton}>
-            <Text style={styles.forgotText}>Forgot Password?</Text>
+            <Text style={styles.forgotText}>Şifremi Unuttum?</Text>
           </TouchableOpacity>
 
-          {/* Log In Button */}
+          {/* Giriş Yap Butonu */}
           <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Log In</Text>
+            <Text style={styles.loginButtonText}>Giriş Yap</Text>
           </TouchableOpacity>
 
-          {/* Divider */}
+          {/* Bölücü Çizgi */}
           <View style={styles.dividerContainer}>
             <View style={styles.line} />
-            <Text style={styles.orText}>OR CONTINUE WITH</Text>
+            <Text style={styles.orText}>VEYA ŞUNUNLA DEVAM ET</Text>
             <View style={styles.line} />
           </View>
 
-          {/* Social Buttons */}
+          {/* Sosyal Medya Butonları */}
           <View style={styles.socialRow}>
             {/* Google */}
             <TouchableOpacity style={styles.socialButton}>
@@ -111,12 +111,15 @@ export default function LoginScreen() {
 
         </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? <Text style={styles.signUpText}>Sign Up</Text></Text>
+        {/* Alt Bilgi (Footer) */}
+       <View style={styles.footer}>
+            <TouchableOpacity onPress={() => router.push('/signup')}>
+              <Text style={styles.footerText}>
+                Hesabınız yok mu? <Text style={styles.signUpText}>Kayıt Ol</Text>
+              </Text>
+            </TouchableOpacity>
             <Text style={styles.brandMono}>● FOCUSROOM MONO ●</Text>
         </View>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -207,7 +210,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  // Buttons
+  // Butonlar
   loginButton: {
     backgroundColor: '#FFF',
     borderRadius: 30,
@@ -221,7 +224,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  // Divider
+  // Bölücü
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -235,12 +238,12 @@ const styles = StyleSheet.create({
   orText: {
     color: '#666',
     paddingHorizontal: 16,
-    fontSize: 12,
+    fontSize: 10, // Biraz küçülttüm sığması için
     fontWeight: '600',
     letterSpacing: 1,
   },
 
-  // Socials
+  // Sosyal Medya
   socialRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
