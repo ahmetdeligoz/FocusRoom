@@ -59,9 +59,15 @@ export default function Home() {
       {/* ALT KISIM: Butonlar */}
       <View style={styles.footer}>
         {/* Kendin Çalış (Primary Style - Beyaz Dolu) */}
-        <TouchableOpacity style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Kendin Çalış</Text>
-        </TouchableOpacity>
+        <TouchableOpacity 
+  style={styles.primaryButton} 
+  onPress={() => {
+    // Seçilen 'minutes' değerini parametre olarak gönderiyoruz
+    router.push({ pathname: '/focusroom', params: { minutes: minutes } });
+  }}
+>
+  <Text style={styles.primaryButtonText}>Kendin Çalış</Text>
+</TouchableOpacity>
 
         {/* Arkadaşlarınla Çalış (Secondary Style - Koyu, Kenarlıklı) */}
         <TouchableOpacity style={styles.secondaryButton}>
