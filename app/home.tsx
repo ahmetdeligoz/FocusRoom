@@ -51,7 +51,7 @@ export default function Home() {
             <Text style={styles.tagline}>Deep work.</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.profileButton}>
+        <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/profile')}>
           <User size={24} color="#FFF" />
         </TouchableOpacity>
       </View>
