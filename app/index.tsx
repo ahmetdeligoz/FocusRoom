@@ -78,7 +78,7 @@ export default function LoginScreen() {
           </View>
 
           {/* Şifremi Unuttum */}
-          <TouchableOpacity style={styles.forgotButton}>
+          <TouchableOpacity style={styles.forgotButton} onPress={() => router.push('/forgot-password')}>
             <Text style={styles.forgotText}>Şifremi Unuttum?</Text>
           </TouchableOpacity>
 
