@@ -112,11 +112,14 @@ export default function LoginScreen() {
         </View>
 
         {/* Alt Bilgi (Footer) */}
-        <View style={styles.footer}>
-            <Text style={styles.footerText}>Hesabınız yok mu? <Text style={styles.signUpText}>Kayıt Ol</Text></Text>
+       <View style={styles.footer}>
+            <TouchableOpacity onPress={() => router.push('/signup')}>
+              <Text style={styles.footerText}>
+                Hesabınız yok mu? <Text style={styles.signUpText}>Kayıt Ol</Text>
+              </Text>
+            </TouchableOpacity>
             <Text style={styles.brandMono}>● FOCUSROOM MONO ●</Text>
         </View>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
