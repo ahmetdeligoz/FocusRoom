@@ -1,200 +1,213 @@
-import { BlurView } from 'expo-blur';
-import { useRouter } from 'expo-router';
-import { LayoutGrid, PhoneOff, Video, VideoOff } from 'lucide-react-native'; // Mic ikonlarını sildik
-import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Minus, Plus, Target, User } from 'lucide-react-native'; // İkonlar için
+import React, { useState } from 'react';
+import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function Index() {
-  const router = useRouter();
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
+export default function Home() {
+  const [minutes, setMinutes] = useState(15);
 
-  // micOn state'ini SİLDİK, artık ihtiyacımız yok
-  const [cameraOn, setCameraOn] = useState(true);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const increaseTime = () => setMinutes(prev => prev + 5);
+  const decreaseTime = () => setMinutes(prev => (prev > 5 ? prev - 5 : 5));
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
 
-  const formattedTime = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  // --- KONTROL BUTONLARI (SADELEŞTİ) ---
-  const ControlsComponent = ({ isFloating = false }) => (
-    <BlurView 
-      intensity={isFloating ? 40 : 0} 
-      tint="dark" 
-      style={[styles.buttonRow, isFloating && styles.floatingControls]}
-    >
-      {/* Kamera Butonu */}
-      <TouchableOpacity 
-        style={[styles.iconButton, !cameraOn && styles.iconButtonOff]} 
-        onPress={() => setCameraOn(!cameraOn)}
-      >
-        {cameraOn ? <Video size={32} color="#000" /> : <VideoOff size={32} color="#FFF" />}
-      </TouchableOpacity>
-
-      {/* Mikrofon Butonu BURADAYDI - SİLDİK */}
-
-      {/* Kapatma Butonu */}
-      <TouchableOpacity style={[styles.iconButton, styles.endCallButton]}>
-        <PhoneOff size={32} color="#FFF" />
-      </TouchableOpacity>
-    </BlurView>
-  );
-
-  // --- ODALAR BUTONU ---
-  const RoomsButton = () => (
-    <TouchableOpacity 
-      style={styles.roomsButton} 
-      onPress={() => router.push('/rooms')}
-    >
-      <LayoutGrid size={24} color="#FFF" />
-      <Text style={styles.roomsButtonText}>Odalar</Text>
-    </TouchableOpacity>
-  );
-
-  // === DİK MOD (PORTRAIT) ===
-  if (!isLandscape) {
-    return (
-      <View style={styles.portraitContainer}>
-        <SafeAreaView style={styles.portraitTopSection}>
-          <View style={styles.topBar}>
-            <RoomsButton />
+      {/* HEADER ALANI (Sol Üst: Logo | Sağ Üst: Profil) */}
+      <View style={styles.headerBar}>
+        
+        {/* Sol Üst: Logo ve İsim */}
+        <View style={styles.brandContainer}>
+          <View style={styles.logoBox}>
+            <Target size={24} color="#FFF" />
           </View>
-          <View style={styles.clockWrapper}>
-            <Text style={styles.portraitClockText}>{formattedTime}</Text>
-            <Text style={styles.portraitDateText}>Sessiz Oda • Focus 1/4</Text>
-          </View>
-        </SafeAreaView>
-
-        <View style={styles.portraitBottomSection}>
-          <View style={styles.portraitVideoCard}>
-            {cameraOn ? (
-              <Image 
-                source={{ uri: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=600&auto=format&fit=crop' }} 
-                style={styles.fullScreenVideo} 
-              />
-            ) : (
-               <View style={[styles.fullScreenVideo, styles.videoOffPlaceholder]}>
-                  <VideoOff size={60} color="#555" />
-                  <Text style={{color: '#555', marginTop: 10}}>Kamera Kapalı</Text>
-               </View>
-            )}
-            <View style={styles.nameTagFloating}>
-               <Text style={styles.nameText}>Sen</Text>
-            </View>
-            <View style={styles.bottomFloatingContainer}>
-              <ControlsComponent isFloating={true} />
-            </View>
+          <View>
+            <Text style={styles.appName}>FocusRoom</Text>
+            {/* Tagline'ı opsiyonel olarak küçük şekilde ekledim, istersen kaldırabilirsin */}
+            <Text style={styles.tagline}>Deep work.</Text>
           </View>
         </View>
-      </View>
-    );
-  }
 
-  // === YAN MOD (LANDSCAPE) ===
-  return (
-    <SafeAreaView style={styles.landscapeContainer}>
-      <View style={{position: 'absolute', top: 20, right: 20, zIndex: 10}}>
-         <RoomsButton />
+        {/* Sağ Üst: Profil Butonu */}
+        <TouchableOpacity style={styles.profileButton} onPress={() => console.log("Profil tıklandı")}>
+          <User size={24} color="#FFF" />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.cardContainerLandscape}>
-        <BlurView intensity={20} tint="dark" style={styles.blurContainerRow}>
-          <View style={styles.videoWrapperLandscape}>
-            {cameraOn ? (
-               <Image 
-                 source={{ uri: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=400&auto=format&fit=crop' }} 
-                 style={styles.fullScreenVideo} 
-               />
-            ) : (
-               <View style={[styles.fullScreenVideo, styles.videoOffPlaceholder]}>
-                 <VideoOff size={40} color="#555" />
-               </View>
-            )}
-            <View style={styles.nameTag}>
-              <Text style={styles.nameText}>Sen</Text>
-            </View>
-          </View>
+      {/* ANA İÇERİK: Zamanlayıcı */}
+      <View style={styles.contentContainer}>
+        
+        {/* Dakika Göstergesi */}
+        <Text style={styles.timerText}>{minutes}</Text>
+        <Text style={styles.timerSubText}>minutes</Text>
 
-          <View style={styles.landscapeControls}>
-            <Text style={styles.clockTextLandscape}>{formattedTime}</Text>
-            <ControlsComponent />
-          </View>
-        </BlurView>
+        {/* Artır / Azalt Kontrolleri */}
+        <View style={styles.controlsRow}>
+          <TouchableOpacity onPress={decreaseTime} style={styles.controlButton}>
+            <Minus size={32} color="#FFF" />
+          </TouchableOpacity>
+
+          <View style={styles.dividerLine} />
+
+          <TouchableOpacity onPress={increaseTime} style={styles.controlButton}>
+            <Plus size={32} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+
       </View>
-    </SafeAreaView>
+
+      {/* ALT KISIM: Butonlar */}
+      <View style={styles.footer}>
+        {/* Kendin Çalış (Primary Style - Beyaz Dolu) */}
+        <TouchableOpacity style={styles.primaryButton}>
+          <Text style={styles.primaryButtonText}>Kendin Çalış</Text>
+        </TouchableOpacity>
+
+        {/* Arkadaşlarınla Çalış (Secondary Style - Koyu, Kenarlıklı) */}
+        <TouchableOpacity style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonText}>Arkadaşlarınla Çalış</Text>
+        </TouchableOpacity>
+        
+        <Text style={styles.brandMono}>● FOCUSROOM MONO ●</Text>
+      </View>
+
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // YENİ STİLLER (Top Bar vb.)
-  topBar: {
-    position: 'absolute',
-    top: 50,
-    right: 30,
-    zIndex: 10,
+  container: {
+    flex: 1,
+    backgroundColor: '#000', // Tam siyah arka plan
+    paddingHorizontal: 24,
+    justifyContent: 'space-between', // Header üstte, Footer altta
+    paddingBottom: 40,
   },
-  roomsButton: {
+
+  // --- HEADER STYLE ---
+  headerBar: {
+    marginTop: 60, // Safe area için boşluk
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  brandContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 25,
-    gap: 8,
+    gap: 12,
+  },
+  logoBox: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#1a1a1a', // Giriş ekranındaki kutu rengi
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#333',
   },
-  roomsButtonText: {
+  appName: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600',
+    letterSpacing: 0.5,
   },
-  clockWrapper: {
+  tagline: {
+    fontSize: 12,
+    color: '#666',
+  },
+  profileButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 22, // Tam yuvarlak
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+
+  // --- TIMER CONTENT ---
+  contentContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
+    flex: 1, // Ekranın ortasını kapla
   },
-  
-  // DİK MOD
-  portraitContainer: { flex: 1, backgroundColor: '#000' },
-  portraitTopSection: { flex: 0.35, justifyContent: 'center', alignItems: 'center' },
-  portraitClockText: { color: '#FFF', fontSize: 90, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
-  portraitDateText: { color: '#888', fontSize: 18, marginTop: -5, fontWeight: '500', letterSpacing: 1 },
-  portraitBottomSection: { flex: 0.65, backgroundColor: '#000', paddingHorizontal: 40, paddingBottom: 80, justifyContent: 'center' },
-  portraitVideoCard: { 
-    flex: 1, 
-    borderRadius: 40, 
-    overflow: 'hidden', 
-    position: 'relative', 
-    backgroundColor: '#1a1a1a', 
-    borderWidth: 1, 
-    borderColor: '#333', 
-    marginBottom: 10 
+  timerText: {
+    fontSize: 120, // Çok büyük font
+    color: '#FFF',
+    fontWeight: 'bold',
+    letterSpacing: -2,
+    lineHeight: 120,
   },
-  
-  // YAN MOD
-  landscapeContainer: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' },
-  cardContainerLandscape: { width: 820, height: 350, borderRadius: 35, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.1)' },
-  blurContainerRow: { flex: 1, flexDirection: 'row', padding: 30, alignItems: 'center', justifyContent: 'space-around' },
-  videoWrapperLandscape: { width: 300, height: 290, borderRadius: 20, overflow: 'hidden', position: 'relative', backgroundColor: '#1a1a1a' },
-  landscapeControls: { alignItems: 'center', gap: 20 },
-  clockTextLandscape: { color: '#FFF', fontSize: 75, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+  timerSubText: {
+    fontSize: 20,
+    color: '#666',
+    marginBottom: 40,
+    fontWeight: '500',
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#111', // Kontrol grubu arka planı
+    borderRadius: 20,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#333',
+    gap: 10,
+  },
+  controlButton: {
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 15,
+    backgroundColor: '#1a1a1a', // Buton rengi
+  },
+  dividerLine: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#333',
+  },
 
-  // ORTAK
-  fullScreenVideo: { width: '100%', height: '100%', resizeMode: 'cover' },
-  bottomFloatingContainer: { position: 'absolute', bottom: 30, width: '100%', alignItems: 'center' },
-  floatingControls: { borderRadius: 40, paddingHorizontal: 30, paddingVertical: 20, overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.4)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  nameTagFloating: { position: 'absolute', top: 20, left: 20, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  nameTag: { position: 'absolute', bottom: 10, left: 10, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  nameText: { color: '#FFF', fontSize: 14, fontWeight: '600' },
-  buttonRow: { flexDirection: 'row', gap: 30 }, // Butonlar arası boşluğu biraz açtım
-  iconButton: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center' }, // Butonları biraz büyüttüm
-  iconButtonOff: { backgroundColor: '#333' },
-  endCallButton: { backgroundColor: '#FF453A' },
-  videoOffPlaceholder: { backgroundColor: '#1a1a1a', justifyContent: 'center', alignItems: 'center' },
+  // --- FOOTER BUTTONS ---
+  footer: {
+    width: '100%',
+    gap: 16,
+    alignItems: 'center',
+  },
+  primaryButton: {
+    backgroundColor: '#FFF', // Beyaz buton
+    width: '100%',
+    height: 56,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  secondaryButton: {
+    backgroundColor: '#000', // Siyah buton
+    width: '100%',
+    height: 56,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#333', // Gri çerçeve
+  },
+  secondaryButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  brandMono: {
+    color: '#333',
+    fontSize: 10,
+    letterSpacing: 2,
+    fontWeight: 'bold',
+    marginTop: 10,
+  },
 });
