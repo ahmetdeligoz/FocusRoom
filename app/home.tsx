@@ -1,10 +1,11 @@
+import { useRouter } from 'expo-router'; // <--- BUNU EKLE
 import { Minus, Plus, Target, User } from 'lucide-react-native'; // İkonlar için
 import React, { useState } from 'react';
 import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function Home() {
   const [minutes, setMinutes] = useState(15);
-
+  const router = useRouter();
   const increaseTime = () => setMinutes(prev => prev + 5);
   const decreaseTime = () => setMinutes(prev => (prev > 5 ? prev - 5 : 5));
 
@@ -28,7 +29,7 @@ export default function Home() {
         </View>
 
         {/* Sağ Üst: Profil Butonu */}
-        <TouchableOpacity style={styles.profileButton} onPress={() => console.log("Profil tıklandı")}>
+        <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/profile')}>
           <User size={24} color="#FFF" />
         </TouchableOpacity>
       </View>
