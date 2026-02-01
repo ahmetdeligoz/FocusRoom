@@ -1,24 +1,26 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
+export default function Layout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <>
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerShown: false, // Üstteki beyaz başlıkları gizle
+          contentStyle: { backgroundColor: '#000' }, // Genel arka plan siyah
+          animation: 'fade', // Sayfa geçişi yumuşak olsun
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen 
+          name="rooms" 
+          options={{ 
+            presentation: 'modal', // Odalar sayfası aşağıdan yukarı havalı bir şekilde kaysın
+            animation: 'slide_from_bottom'
+          }} 
+        />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </>
   );
 }
