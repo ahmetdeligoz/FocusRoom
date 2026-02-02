@@ -3,7 +3,7 @@ import { Mic, MicOff, Pause, Play, VideoOff, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
-// Mock Data (Arkadaşların bilgilerini ID'den bulmak için)
+// Mock Data
 const MOCK_FRIENDS_LOOKUP: Record<string, { name: string, color: string }> = {
   '1': { name: 'Yusuf', color: '#304ffe' },
   '2': { name: 'Ahmet', color: '#c0392b' },
@@ -18,14 +18,13 @@ export default function SharedRoom() {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-  // Invite sayfasından gelen arkadaş listesini alıyoruz
   const invitedFriendIds = params.friends ? JSON.parse(params.friends as string) : [];
 
-  // Sayaç Mantığı (Varsayılan 25 dk)
-  const [secondsLeft, setSecondsLeft] = useState(25 * 60);
+  // Params'dan gelen dakikayı al, yoksa 25 yap
+  const initialMinutes = params.minutes ? parseInt(params.minutes as string) : 25;
+  
+  const [secondsLeft, setSecondsLeft] = useState(initialMinutes * 60);
   const [isActive, setIsActive] = useState(true);
-
-  // Mikrofon/Kamera Durumu (Sadece görsel şimdilik)
   const [isMicOn, setIsMicOn] = useState(false);
 
   useEffect(() => {
@@ -39,8 +38,13 @@ export default function SharedRoom() {
   }, [isActive, secondsLeft]);
 
   const formatTime = (totalSeconds: number) => {
-    const m = Math.floor(totalSeconds / 60);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
     const s = totalSeconds % 60;
+
+    if (h > 0) {
+      return `${h}:${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
+    }
     return `${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
   };
 
@@ -50,18 +54,14 @@ export default function SharedRoom() {
       "Ortak çalışma odasından çıkmak istediğine emin misin?",
       [
         { text: "Vazgeç", style: "cancel" },
-        { text: "Çık", style: "destructive", onPress: () => router.push('/home') } // Ana sayfaya dön
+        { text: "Çık", style: "destructive", onPress: () => router.push('/home') }
       ]
     );
   };
 
-  // --- BİLEŞENLER ---
-
-  // Katılımcı Listesi (Üst Kısım)
   const ParticipantsBar = () => (
     <View style={styles.participantsContainer}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-        {/* Sen (Kullanıcı) */}
         <View style={styles.participantBadge}>
            <View style={[styles.avatar, { backgroundColor: '#333' }]}>
              <Text style={styles.avatarText}>ME</Text>
@@ -70,8 +70,6 @@ export default function SharedRoom() {
              {isMicOn ? <Mic size={12} color="#FFF" /> : <MicOff size={12} color="#f00" />}
            </View>
         </View>
-
-        {/* Arkadaşların */}
         {invitedFriendIds.map((id: string) => {
           const friend = MOCK_FRIENDS_LOOKUP[id] || { name: 'Guest', color: '#555' };
           return (
@@ -79,7 +77,6 @@ export default function SharedRoom() {
               <View style={[styles.avatar, { backgroundColor: friend.color }]}>
                 <Text style={styles.avatarText}>{friend.name[0]}</Text>
               </View>
-              {/* Arkadaşların mikrofonu kapalı varsayalım */}
               <View style={styles.micIcon}>
                  <MicOff size={12} color="#f00" />
               </View>
@@ -102,33 +99,25 @@ export default function SharedRoom() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
-      {/* ÜST BAR: Katılımcılar ve Çıkış */}
       <View style={styles.header}>
         <ParticipantsBar />
         <TouchableOpacity style={styles.exitButton} onPress={handleExit}>
           <X size={24} color="#FFF" />
         </TouchableOpacity>
       </View>
-
-      {/* ORTA: Sayaç */}
       <View style={styles.content}>
         <TimerComponent />
       </View>
-
-      {/* ALT: Kontroller */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => setIsMicOn(!isMicOn)}>
           {isMicOn ? <Mic size={24} color="#FFF" /> : <MicOff size={24} color="#666" />}
         </TouchableOpacity>
-
         <TouchableOpacity 
           style={[styles.playButton, isActive ? { backgroundColor: '#FFF' } : { backgroundColor: '#333', borderWidth: 1, borderColor: '#555' }]} 
           onPress={() => setIsActive(!isActive)}
         >
           {isActive ? <Pause size={32} color="#000" /> : <Play size={32} color="#FFF" />}
         </TouchableOpacity>
-
         <TouchableOpacity style={styles.iconBtn}>
           <VideoOff size={24} color="#666" />
         </TouchableOpacity>
@@ -161,8 +150,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#333',
   },
-  
-  // Katılımcılar
   participantsContainer: {
     flex: 1,
     marginRight: 20,
@@ -192,8 +179,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 2,
   },
-
-  // Sayaç
   content: {
     flex: 1,
     justifyContent: 'center',
@@ -214,8 +199,6 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
-
-  // Footer
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-evenly',

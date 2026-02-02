@@ -1,11 +1,9 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router'; // DÜZELTME BURADA YAPILDI
 import { Check, Copy, Plus, Search, Share2, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { FlatList, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-// --- GELECEK İÇİN VERİ YAPISI (MOCK DATA) ---
-// İleride bu veriyi veritabanından (Firebase/Supabase vb.) çekeceksin.
-// 'avatar' kısmı null ise isminin baş harflerini gösteririz.
+// --- MOCK DATA ---
 const MOCK_FRIENDS = [
   { id: '1', name: 'Yusuf Deligöz', username: '@yusuf', avatar: null },
   { id: '2', name: 'Ahmet Yılmaz', username: '@ahmet', avatar: null },
@@ -16,6 +14,10 @@ const MOCK_FRIENDS = [
 
 export default function InviteScreen() {
   const router = useRouter();
+  
+  // DÜZELTME: Import ettikten sonra burada kullanıyoruz
+  const params = useLocalSearchParams(); 
+
   const [searchText, setSearchText] = useState('');
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
 
@@ -24,7 +26,7 @@ export default function InviteScreen() {
     friend.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  // Arkadaş seçme/çıkarma fonksiyonu
+  // Arkadaş seçme/çıkarma
   const toggleSelection = (id: string) => {
     if (selectedFriends.includes(id)) {
       setSelectedFriends(prev => prev.filter(friendId => friendId !== id));
@@ -34,11 +36,12 @@ export default function InviteScreen() {
   };
 
   const handleStartWorking = () => {
-    // Seçilen arkadaşların ID listesini string'e çevirip parametre olarak gönderiyoruz
     router.push({
-      pathname: '/sharedroom', // ARTIK FOCUSROOM DEĞİL, SHAREDROOM
+      pathname: '/sharedroom',
       params: { 
-        friends: JSON.stringify(selectedFriends) 
+        friends: JSON.stringify(selectedFriends),
+        // Ana sayfadan gelen 'minutes' parametresini aynen iletiyoruz
+        minutes: params.minutes 
       }
     }); 
   };
@@ -52,20 +55,17 @@ export default function InviteScreen() {
         onPress={() => toggleSelection(item.id)}
         activeOpacity={0.7}
       >
-        {/* Avatar Alanı */}
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
             {item.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
           </Text>
         </View>
 
-        {/* İsim Alanı */}
         <View style={styles.friendInfo}>
           <Text style={styles.friendName}>{item.name}</Text>
           <Text style={styles.friendUsername}>{item.username}</Text>
         </View>
 
-        {/* Ekle Butonu / İkonu */}
         <View style={[styles.actionIcon, isSelected ? styles.iconSelected : styles.iconUnselected]}>
           {isSelected ? <Check size={20} color="#000" /> : <Plus size={20} color="#FFF" />}
         </View>
@@ -75,7 +75,6 @@ export default function InviteScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Modal olduğu için StatusBar stilini değiştirebiliriz */}
       <StatusBar barStyle="light-content" />
 
       {/* HEADER */}
@@ -91,7 +90,7 @@ export default function InviteScreen() {
         </View>
       </View>
 
-      {/* ARAMA ÇUBUĞU */}
+      {/* ARAMA */}
       <View style={styles.searchContainer}>
         <Search size={20} color="#666" style={styles.searchIcon} />
         <TextInput
@@ -103,7 +102,7 @@ export default function InviteScreen() {
         />
       </View>
 
-      {/* ARKADAŞ LİSTESİ */}
+      {/* LİSTE */}
       <FlatList
         data={filteredFriends}
         keyExtractor={item => item.id}
@@ -112,14 +111,12 @@ export default function InviteScreen() {
         style={styles.list}
       />
 
-      {/* FOOTER (Butonlar) */}
+      {/* FOOTER */}
       <View style={styles.footer}>
-        {/* Kapatma Butonu (Kırmızı) */}
         <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
           <X size={24} color="#FFF" />
         </TouchableOpacity>
 
-        {/* Başlama Butonu */}
         <TouchableOpacity style={styles.startButton} onPress={handleStartWorking}>
           <Text style={styles.startButtonText}>
             {selectedFriends.length > 0 ? `${selectedFriends.length} Kişiyle Başla` : 'Çalışmaya Başla'}
@@ -133,7 +130,7 @@ export default function InviteScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212', // Modal olduğu için ana sayfadan bir tık açık olabilir veya aynı (#000) kalabilir
+    backgroundColor: '#121212',
     paddingTop: 20,
   },
   header: {
@@ -155,8 +152,6 @@ const styles = StyleSheet.create({
   iconButton: {
     padding: 5,
   },
-  
-  // Search
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -178,19 +173,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     height: '100%',
   },
-
-  // List Item
   list: {
     flex: 1,
   },
   listContent: {
     paddingHorizontal: 20,
-    paddingBottom: 100, // Footer için boşluk
+    paddingBottom: 100,
   },
   friendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#000', // Liste elemanları daha koyu
+    backgroundColor: '#000',
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
@@ -198,14 +191,14 @@ const styles = StyleSheet.create({
     borderColor: '#333',
   },
   friendItemActive: {
-    borderColor: '#304ffe', // Seçilince mavi çerçeve
+    borderColor: '#304ffe',
     backgroundColor: '#0a0a1a',
   },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#304ffe', // Profil resmi yoksa mavi arka plan
+    backgroundColor: '#304ffe',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
@@ -239,10 +232,8 @@ const styles = StyleSheet.create({
     borderColor: '#666',
   },
   iconSelected: {
-    backgroundColor: '#FFF', // Seçilince içi dolu beyaz
+    backgroundColor: '#FFF',
   },
-
-  // Footer
   footer: {
     position: 'absolute',
     bottom: 40,
@@ -256,14 +247,14 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#ef4444', // Gönderdiğin resimdeki kırmızıya yakın ton
+    backgroundColor: '#ef4444',
     justifyContent: 'center',
     alignItems: 'center',
   },
   startButton: {
     flex: 1,
     height: 56,
-    backgroundColor: '#1a1a1a', // Resimdeki gibi koyu arka plan
+    backgroundColor: '#1a1a1a',
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',

@@ -113,8 +113,10 @@ export default function Home() {
         </TouchableOpacity>
 
         <TouchableOpacity 
-  style={styles.secondaryButton}
-  onPress={() => router.push('/invite')} // BURAYI EKLE
+          style={styles.secondaryButton} 
+          onPress={() => {
+             router.push({ pathname: '/invite', params: { minutes: minutes } });
+          }}
 >
   <Text style={styles.secondaryButtonText}>Arkadaşlarınla Çalış</Text>
 </TouchableOpacity>
