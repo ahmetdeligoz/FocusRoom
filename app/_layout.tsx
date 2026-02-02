@@ -5,32 +5,41 @@ import { supabase } from '../lib/supabase';
 
 export default function Layout() {
   useEffect(() => {
-    console.log("Supabase Bağlantısı:", supabase ? "Başarılı ✅" : "Başarısız ❌");
+    // Supabase bağlantı kontrolü
+    if (supabase) {
+      console.log("Supabase Bağlantısı: Başarılı ✅");
+    } else {
+      console.log("Supabase Bağlantısı: Devre Dışı (Mock Mode) ⚠️");
+    }
   }, []);
+
   return (
     <>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#000' },
+          contentStyle: { backgroundColor: '#000' }, // Tüm sayfalar varsayılan siyah
           animation: 'fade',
         }}
       >
-        {/* Giriş Ekranı (index) */}
+        {/* 1. Giriş Ekranı */}
         <Stack.Screen name="index" />
 
-        {/* YENİ: Ana Sayfa (Eski index, yeni home) - BUNU EKLE */}
+        {/* 2. Ana Sayfa */}
         <Stack.Screen name="home" />
 
-        {/* Odalar Sayfası */}
-        <Stack.Screen 
-          name="rooms" 
-          options={{ 
-            presentation: 'modal',
-            animation: 'slide_from_bottom'
-          }} 
-        />
+        {/* 3. Tek Kişilik Odaklanma Odası */}
+        <Stack.Screen name="focusroom" />
+
+        {/* 4. Ortak Çalışma Odası */}
+        <Stack.Screen name="sharedroom" />
+
+        {/* 5. Arkadaş Davet Etme (DÜZELTİLDİ: Modal kaldırıldı, normal sayfa oldu) */}
+        <Stack.Screen name="invite" />
+
+        {/* 6. Odalar Listesi */}
+        <Stack.Screen name="rooms" />
       </Stack>
     </>
   );

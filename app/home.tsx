@@ -112,9 +112,12 @@ export default function Home() {
           <Text style={styles.primaryButtonText}>Kendin Çalış</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Arkadaşlarınla Çalış</Text>
-        </TouchableOpacity>
+        <TouchableOpacity 
+  style={styles.secondaryButton}
+  onPress={() => router.push('/invite')} // BURAYI EKLE
+>
+  <Text style={styles.secondaryButtonText}>Arkadaşlarınla Çalış</Text>
+</TouchableOpacity>
         
         <Text style={styles.brandMono}>● FOCUSROOM MONO ●</Text>
       </View>
