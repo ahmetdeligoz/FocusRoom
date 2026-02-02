@@ -3,22 +3,23 @@ import { StatusBar } from 'expo-status-bar';
 import { Check, ChevronDown, Eye, EyeOff, Target } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform, ScrollView,
-    StyleSheet, Text,
-    TextInput, TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform, ScrollView,
+  StyleSheet, Text,
+  TextInput, TouchableOpacity,
+  View
 } from 'react-native';
+import { supabase } from '../lib/supabase'; // <-- BAĞLANTIMIZI EKLEDİK
 
-// TİP TANIMLAMASI (HATA BURADAN ÇIKIYORDU, BUNU EKLEDİK)
 type Language = {
   id: string;
   label: string;
 };
 
-// Dil seçeneklerimiz
 const LANGUAGES: Language[] = [
   { id: 'tr', label: 'Türkçe (Türkiye)' },
   { id: 'en', label: 'English (United States)' },
@@ -32,25 +33,60 @@ const LANGUAGES: Language[] = [
 export default function SignupScreen() {
   const router = useRouter();
   
-  // Form State'leri
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
-  // UI State'leri
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [loading, setLoading] = useState(false); // <-- YÜKLENİYOR DURUMU
 
-  // DİL SEÇİMİ
   const [selectedLanguage, setSelectedLanguage] = useState<Language>(LANGUAGES[0]);
   const [showLangModal, setShowLangModal] = useState(false);
 
-  const handleSignup = () => {
-    router.replace('/home');
-  };
+  // --- KAYIT FONKSİYONU ---
+  async function handleSignup() {
+    // 1. Basit Kontroller
+    if (!email || !password || !fullName) {
+      Alert.alert("Eksik Bilgi", "Lütfen tüm alanları doldurun.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert("Hata", "Şifreler birbiriyle uyuşmuyor.");
+      return;
+    }
+    if (!isChecked) {
+      Alert.alert("Uyarı", "Lütfen gizlilik sözleşmesini kabul edin.");
+      return;
+    }
 
-  // HATA VEREN YERİ DÜZELTTİK: (lang: Language) dedik
+    setLoading(true); // Yükleniyor'u başlat
+
+    // 2. Supabase'e Kayıt İsteği At
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: {
+          full_name: fullName, // Ekstra bilgiyi (Ad Soyad) buraya saklıyoruz
+        },
+      },
+    });
+
+    setLoading(false); // Yükleniyor'u bitir
+
+    // 3. Sonuç Kontrolü
+    if (error) {
+      Alert.alert("Kayıt Başarısız", error.message);
+    } else {
+      // Başarılı!
+      Alert.alert("Tebrikler!", "Hesabınız oluşturuldu. Giriş yapabilirsiniz.", [
+        { text: "Tamam", onPress: () => router.replace('/home') } // Direkt içeri al
+      ]);
+    }
+  }
+
   const handleSelectLanguage = (lang: Language) => {
     setSelectedLanguage(lang);
     setShowLangModal(false);
@@ -64,7 +100,6 @@ export default function SignupScreen() {
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         
-        {/* HEADER */}
         <View style={styles.header}>
           <View style={styles.logoBox}>
             <Target size={32} color="#FFF" />
@@ -73,9 +108,7 @@ export default function SignupScreen() {
           <Text style={styles.tagline}>Kendi alanını oluştur.</Text>
         </View>
 
-        {/* FORM */}
         <View style={styles.form}>
-          
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Ad Soyad</Text>
             <TextInput
@@ -129,7 +162,6 @@ export default function SignupScreen() {
             />
           </View>
 
-          {/* DİL SEÇİMİ */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Dil</Text>
             <TouchableOpacity 
@@ -153,8 +185,17 @@ export default function SignupScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
-            <Text style={styles.signupButtonText}>Kayıt Ol</Text>
+          {/* KAYIT BUTONU (Yükleniyor ikonu eklendi) */}
+          <TouchableOpacity 
+            style={[styles.signupButton, loading && { opacity: 0.7 }]} 
+            onPress={handleSignup}
+            disabled={loading} // Yüklenirken tıklamayı engelle
+          >
+            {loading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text style={styles.signupButtonText}>Kayıt Ol</Text>
+            )}
           </TouchableOpacity>
 
         </View>
@@ -167,7 +208,7 @@ export default function SignupScreen() {
 
       </ScrollView>
 
-      {/* MODAL */}
+      {/* MODAL (Aynı Kaldı) */}
       <Modal
         visible={showLangModal}
         transparent={true}
@@ -181,7 +222,6 @@ export default function SignupScreen() {
         >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Dil Seçin</Text>
-            
             <FlatList
               data={LANGUAGES}
               keyExtractor={(item) => item.id}

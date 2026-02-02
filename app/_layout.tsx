@@ -1,7 +1,12 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 export default function Layout() {
+  useEffect(() => {
+    console.log("Supabase Bağlantısı:", supabase ? "Başarılı ✅" : "Başarısız ❌");
+  }, []);
   return (
     <>
       <StatusBar style="light" />
