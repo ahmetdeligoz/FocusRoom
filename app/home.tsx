@@ -4,15 +4,21 @@ import React, { useState } from 'react';
 import { Dimensions, FlatList, NativeScrollEvent, NativeSyntheticEvent, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = 80; // Her bir zaman diliminin genişliği
-const SPACING = (width - ITEM_WIDTH) / 2; // Ortalamak için boşluk
+const ITEM_WIDTH = 80;
+const SPACING = (width - ITEM_WIDTH) / 2;
 
 export default function Home() {
   const router = useRouter();
-  const [minutes, setMinutes] = useState(15);
   
-  // GÜNCELLEME 1: Maksimum süreyi 5 saate (300 dk) çıkardık
+  // Başlangıç değerimiz 15
+  const [minutes, setMinutes] = useState(5);
+  
   const times = Array.from({ length: 60 }, (_, i) => (i + 1) * 5);
+
+  // --- KRİTİK HESAPLAMA ---
+  // 15 sayısının listede kaçıncı sırada olduğunu buluyoruz.
+  // 5, 10, 15 -> Index 2 (yani 3. eleman)
+  const initialIndex = times.indexOf(5); 
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
@@ -22,25 +28,20 @@ export default function Home() {
     }
   };
 
-  // GÜNCELLEME 2: Süreyi Saat/Dakika formatına çeviren fonksiyon
   const getFormattedTime = (mins: number) => {
-    if (mins < 60) return mins; // 60'tan küçükse direkt sayıyı dön
-    
+    if (mins < 60) return mins;
     const h = Math.floor(mins / 60);
     const m = mins % 60;
-    
-    if (m === 0) return `${h}h`; // Tam saatsa (örn: 2h)
-    return `${h}h ${m}m`; // Küsuratlıysa (örn: 1h 30m)
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}m`;
   };
 
-  // Yazı uzunluğuna göre fontu ayarlayalım
   const isLongText = minutes >= 60; 
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* HEADER */}
       <View style={styles.headerBar}>
         <View style={styles.brandContainer}>
           <View style={styles.logoBox}>
@@ -56,23 +57,18 @@ export default function Home() {
         </TouchableOpacity>
       </View>
 
-      {/* ORTA ALAN: ZAMAN VE CETVEL */}
       <View style={styles.timerWrapper}>
         
-        {/* GÜNCELLEME 3: Formatlı Zaman Göstergesi */}
-        <Text style={[styles.timerText, { fontSize: isLongText ? 90 : 90}]}>
+        <Text style={[styles.timerText, { fontSize: 90 }]}>
           {getFormattedTime(minutes)}
         </Text>
         
-        {/* Alt metin: Dakika ise "minutes", saat ise "duration" */}
         <Text style={styles.timerSubText}>
           {minutes < 60 ? 'minutes' : 'duration'}
         </Text>
 
-        {/* Mavi İmleç */}
         <View style={styles.indicatorTriangle} />
 
-        {/* Kaydırılabilir Cetvel */}
         <View style={styles.rulerContainer}>
           <FlatList
             data={times}
@@ -84,10 +80,21 @@ export default function Home() {
             contentContainerStyle={{ paddingHorizontal: SPACING }}
             onScroll={handleScroll}
             scrollEventThrottle={16}
+            
+            // --- DÜZELTME BAŞLANGICI ---
+            // 1. Liste açılınca direkt hesapladığımız index'e (15 dk'ya) gitsin
+            initialScrollIndex={initialIndex}
+
+            // 2. Performans ve hatasız kaydırma için boyutları önceden bildiriyoruz
+            getItemLayout={(data, index) => ({
+              length: ITEM_WIDTH,
+              offset: ITEM_WIDTH * index,
+              index,
+            })}
+            // --- DÜZELTME BİTİŞİ ---
+
             renderItem={({ item }) => {
-              // Sadece saat başlarını (60, 120...) ve buçukları (30, 90...) belirgin yap
               const isMajor = item % 30 === 0; 
-              
               return (
                 <View style={[styles.rulerItem, { width: ITEM_WIDTH }]}>
                   <View style={[styles.rulerLine, isMajor ? styles.majorLine : styles.minorLine]} />
@@ -101,7 +108,6 @@ export default function Home() {
         </View>
       </View>
 
-      {/* FOOTER */}
       <View style={styles.footer}>
         <TouchableOpacity 
           style={styles.primaryButton} 
@@ -117,9 +123,9 @@ export default function Home() {
           onPress={() => {
              router.push({ pathname: '/invite', params: { minutes: minutes } });
           }}
->
-  <Text style={styles.secondaryButtonText}>Arkadaşlarınla Çalış</Text>
-</TouchableOpacity>
+        >
+          <Text style={styles.secondaryButtonText}>Arkadaşlarınla Çalış</Text>
+        </TouchableOpacity>
         
         <Text style={styles.brandMono}>● FOCUSROOM MONO ●</Text>
       </View>
@@ -145,7 +151,6 @@ const styles = StyleSheet.create({
   tagline: { fontSize: 12, color: '#666' },
   profileButton: { width: 44, height: 44, backgroundColor: '#1a1a1a', borderRadius: 22, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#333' },
 
-  // --- TIMER & RULER STYLES ---
   timerWrapper: {
     flex: 1,
     justifyContent: 'center',
@@ -153,7 +158,6 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   timerText: {
-    // fontSize dinamik olarak style prop içinde veriliyor
     color: '#FFF',
     fontWeight: 'bold',
     letterSpacing: -2,
@@ -213,7 +217,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // --- FOOTER ---
   footer: {
     width: '100%',
     gap: 16,

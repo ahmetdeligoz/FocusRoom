@@ -1,222 +1,267 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Mic, MicOff, Pause, Play, VideoOff, X } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { PhoneOff, Video, VideoOff } from 'lucide-react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, PermissionsAndroid, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ChannelProfileType,
+  ClientRoleType,
+  createAgoraRtcEngine,
+  IRtcEngine,
+  RtcSurfaceView,
+} from 'react-native-agora';
 
-// Mock Data
-const MOCK_FRIENDS_LOOKUP: Record<string, { name: string, color: string }> = {
-  '1': { name: 'Yusuf', color: '#304ffe' },
-  '2': { name: 'Ahmet', color: '#c0392b' },
-  '3': { name: 'Ayşe', color: '#27ae60' },
-  '4': { name: 'Mehmet', color: '#f39c12' },
-  '5': { name: 'Zeynep', color: '#8e44ad' },
-};
+const APP_ID = process.env.EXPO_PUBLIC_AGORA_APP_ID || '';
+const CHANNEL_NAME = 'focus-room-shared';
 
 export default function SharedRoom() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
-
-  const invitedFriendIds = params.friends ? JSON.parse(params.friends as string) : [];
-
-  // Params'dan gelen dakikayı al, yoksa 25 yap
-  const initialMinutes = params.minutes ? parseInt(params.minutes as string) : 25;
   
+  const agoraEngine = useRef<IRtcEngine | null>(null);
+  
+  const [isJoined, setIsJoined] = useState(false);
+  const [remoteUids, setRemoteUids] = useState<number[]>([]);
+  const [isCameraOn, setIsCameraOn] = useState(true);
+
+  // Sayaç Ayarları
+  const initialMinutes = params.minutes ? parseInt(params.minutes as string) : 25;
   const [secondsLeft, setSecondsLeft] = useState(initialMinutes * 60);
   const [isActive, setIsActive] = useState(true);
-  const [isMicOn, setIsMicOn] = useState(false);
 
+  // 1. useEffect: SADECE AGORA KURULUMU İÇİN (Bir kere çalışır)
+  useEffect(() => {
+    setupVideoSDKEngine();
+
+    return () => {
+      // Sayfadan çıkınca çalışır
+      agoraEngine.current?.leaveChannel();
+      agoraEngine.current?.release();
+    };
+  }, []); // <-- Burası boş array, yani sadece ilk girişte çalışır!
+
+  // 2. useEffect: SADECE SAYAÇ İÇİN (Her saniye çalışır)
   useEffect(() => {
     let interval: any = null;
     if (isActive && secondsLeft > 0) {
-      interval = setInterval(() => setSecondsLeft(prev => prev - 1), 1000);
+      interval = setInterval(() => {
+        setSecondsLeft(prev => prev - 1);
+      }, 1000);
     } else if (secondsLeft === 0) {
       setIsActive(false);
+      Alert.alert("Süre Bitti", "Odaklanma süresi tamamlandı!");
     }
-    return () => { if (interval) clearInterval(interval); };
+    return () => clearInterval(interval);
   }, [isActive, secondsLeft]);
 
+  const setupVideoSDKEngine = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA);
+      }
+
+      agoraEngine.current = createAgoraRtcEngine();
+      const agora = agoraEngine.current;
+      
+      agora.initialize({
+        appId: APP_ID,
+        channelProfile: ChannelProfileType.ChannelProfileLiveBroadcasting,
+      });
+
+      agora.enableVideo();
+      agora.disableAudio(); // Ses kapalı
+      agora.startPreview();
+
+      agora.registerEventHandler({
+        onJoinChannelSuccess: () => {
+          console.log('Odaya başarıyla girildi');
+          setIsJoined(true);
+        },
+        onUserJoined: (_connection, uid) => {
+          console.log('Yeni kullanıcı geldi:', uid);
+          setRemoteUids(prev => {
+            // Eğer bu kişi zaten listede varsa tekrar ekleme (Hata Çözümü)
+            if (prev.includes(uid)) return prev;
+            return [...prev, uid];
+          });
+        },
+        onUserOffline: (_connection, uid) => {
+          console.log('Kullanıcı çıktı:', uid);
+          setRemoteUids(prev => prev.filter(id => id !== uid));
+        },
+      });
+
+      agora.joinChannel('', CHANNEL_NAME, 0, {
+        clientRoleType: ClientRoleType.ClientRoleBroadcaster,
+      });
+
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Hata", "Bağlantı kurulamadı.");
+    }
+  };
+
   const formatTime = (totalSeconds: number) => {
-    const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
     const s = totalSeconds % 60;
-
-    if (h > 0) {
-      return `${h}:${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
-    }
     return `${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
   };
 
+  const toggleCamera = () => {
+    agoraEngine.current?.muteLocalVideoStream(isCameraOn);
+    setIsCameraOn(!isCameraOn);
+  };
+
   const handleExit = () => {
-    Alert.alert(
-      "Odadan Ayrıl",
-      "Ortak çalışma odasından çıkmak istediğine emin misin?",
-      [
-        { text: "Vazgeç", style: "cancel" },
-        { text: "Çık", style: "destructive", onPress: () => router.push('/home') }
-      ]
+    Alert.alert("Çıkış", "Odadan ayrılmak istiyor musun?", [
+      { text: "Kal", style: "cancel" },
+      { text: "Ayrıl", style: "destructive", onPress: () => router.back() }
+    ]);
+  };
+
+  const renderVideos = () => {
+    // Toplam kişi sayısı (Sen + Diğerleri)
+    const totalUsers = 1 + remoteUids.length; 
+    const isSingle = totalUsers === 1;
+
+    return (
+      <View style={styles.videoGrid}>
+        {/* SENİN GÖRÜNTÜN (Local) */}
+        <View style={[styles.videoContainer, isSingle ? styles.fullScreen : styles.halfScreen]}>
+          {isCameraOn ? (
+            <RtcSurfaceView canvas={{ uid: 0 }} style={styles.videoStream} />
+          ) : (
+            <View style={styles.videoPlaceholder}>
+              <Text style={{color:'#555'}}>Kamera Kapalı</Text>
+            </View>
+          )}
+          <View style={styles.nameTag}><Text style={styles.nameText}>Sen</Text></View>
+        </View>
+
+        {/* ARKADAŞLARIN GÖRÜNTÜSÜ (Remote) */}
+        {remoteUids.map((uid) => (
+          <View key={uid} style={[styles.videoContainer, styles.halfScreen]}>
+            <RtcSurfaceView 
+              canvas={{ uid: uid }} 
+              style={styles.videoStream} 
+              zOrderMediaOverlay={true} 
+            />
+            <View style={styles.nameTag}><Text style={styles.nameText}>Arkadaş</Text></View>
+          </View>
+        ))}
+      </View>
     );
   };
 
-  const ParticipantsBar = () => (
-    <View style={styles.participantsContainer}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-        <View style={styles.participantBadge}>
-           <View style={[styles.avatar, { backgroundColor: '#333' }]}>
-             <Text style={styles.avatarText}>ME</Text>
-           </View>
-           <View style={styles.micIcon}>
-             {isMicOn ? <Mic size={12} color="#FFF" /> : <MicOff size={12} color="#f00" />}
-           </View>
-        </View>
-        {invitedFriendIds.map((id: string) => {
-          const friend = MOCK_FRIENDS_LOOKUP[id] || { name: 'Guest', color: '#555' };
-          return (
-            <View key={id} style={styles.participantBadge}>
-              <View style={[styles.avatar, { backgroundColor: friend.color }]}>
-                <Text style={styles.avatarText}>{friend.name[0]}</Text>
-              </View>
-              <View style={styles.micIcon}>
-                 <MicOff size={12} color="#f00" />
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-
-  const TimerComponent = () => (
-    <View style={styles.timerWrapper}>
-      <Text style={[styles.timerText, { fontSize: isLandscape ? 80 : 100 }]}>
-        {formatTime(secondsLeft)}
-      </Text>
-      <Text style={styles.statusText}>{isActive ? "Deep Work Together" : "Session Paused"}</Text>
-    </View>
-  );
+  if (!isJoined) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2ecc71" />
+        <Text style={{color:'#FFF', marginTop: 20}}>Odaya Bağlanılıyor...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.header}>
-        <ParticipantsBar />
-        <TouchableOpacity style={styles.exitButton} onPress={handleExit}>
-          <X size={24} color="#FFF" />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.content}>
-        <TimerComponent />
-      </View>
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => setIsMicOn(!isMicOn)}>
-          {isMicOn ? <Mic size={24} color="#FFF" /> : <MicOff size={24} color="#666" />}
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.playButton, isActive ? { backgroundColor: '#FFF' } : { backgroundColor: '#333', borderWidth: 1, borderColor: '#555' }]} 
-          onPress={() => setIsActive(!isActive)}
-        >
-          {isActive ? <Pause size={32} color="#000" /> : <Play size={32} color="#FFF" />}
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconBtn}>
-          <VideoOff size={24} color="#666" />
-        </TouchableOpacity>
+
+      {renderVideos()}
+
+      <View style={styles.overlay}>
+        
+        <View style={styles.timerContainer}>
+          <Text style={styles.timerText}>{formatTime(secondsLeft)}</Text>
+          <View style={[styles.statusDot, isActive ? {backgroundColor: '#2ecc71'} : {backgroundColor: '#e74c3c'}]} />
+        </View>
+
+        <View style={styles.controlsArea}>
+          <TouchableOpacity style={[styles.controlBtn, !isCameraOn && styles.btnOff]} onPress={toggleCamera}>
+            {isCameraOn ? <Video size={24} color="#000" /> : <VideoOff size={24} color="#FFF" />}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.controlBtn, styles.hangupBtn]} onPress={handleExit}>
+            <PhoneOff size={28} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: '#000' },
+  loadingContainer: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' },
+  
+  videoGrid: {
     flex: 1,
-    backgroundColor: '#000',
-    paddingTop: 60,
-    paddingBottom: 40,
-    paddingHorizontal: 20,
-    justifyContent: 'space-between',
-  },
-  header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  exitButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#1a1a1a',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
+  },
+  videoContainer: {
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#1a1a1a',
+    backgroundColor: '#111',
   },
-  participantsContainer: {
-    flex: 1,
-    marginRight: 20,
-  },
-  participantBadge: {
-    position: 'relative',
-    marginRight: 5,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#111',
-  },
-  avatarText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-  },
-  micIcon: {
+  fullScreen: { width: '100%', height: '100%' },
+  halfScreen: { width: '50%', height: '50%' }, // İki kişi yan yana veya alt alta
+  
+  videoStream: { flex: 1 },
+  videoPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#222' },
+  
+  nameTag: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: '#000',
-    borderRadius: 8,
-    padding: 2,
+    bottom: 10,
+    left: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  nameText: { color: '#FFF', fontSize: 12 },
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+    pointerEvents: 'box-none', // Dokunmaları videoya geçirmek için (gerekirse)
   },
-  timerWrapper: {
-    alignItems: 'center',
-  },
-  timerText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontVariant: ['tabular-nums'],
-  },
-  statusText: {
-    color: '#666',
-    fontSize: 16,
-    marginTop: 10,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  footer: {
+  
+  timerContainer: {
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 30,
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
     alignItems: 'center',
+    gap: 10,
   },
-  iconBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#1a1a1a',
+  timerText: { color: '#FFF', fontSize: 24, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+
+  controlsArea: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20, 
+  },
+  controlBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
   },
-  playButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  btnOff: { backgroundColor: '#333', borderWidth: 1, borderColor: '#555' },
+  hangupBtn: { backgroundColor: '#FF453A' },
 });
